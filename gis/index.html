@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TraceX — GIS Vehicle Trajectory Reconstruction</title>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(15, 23, 42, 0.88);
+      --panel-border: rgba(255, 255, 255, 0.1);
+      --accent: #38bdf8;
+      --accent-glow: rgba(56, 189, 248, 0.35);
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* Layout */
+    #sidebar {
+      width: 420px;
+      min-width: 380px;
+      max-width: 460px;
+      height: 100%;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid var(--panel-border);
+      display: flex;
+      flex-direction: column;
+      z-index: 1000;
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.4);
+    }
+
+    #map-container {
+      flex: 1;
+      height: 100%;
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #0b1120;
+    }
+
+    /* Header */
+    .sidebar-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      color: var(--accent);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .brand-badge span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      display: inline-block;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Search Box */
+    .search-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--panel-border);
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .input-wrapper {
+      flex: 1;
+      position: relative;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      outline: none;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    .btn-track {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 16px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-track:hover {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4);
+    }
+
+    .quick-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+      align-items: center;
+    }
+
+    .tag-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .tag-chip {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .tag-chip:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .tag-chip.fuzzy {
+      border-style: dashed;
+      color: var(--accent-amber);
+    }
+
+    /* Content Area */
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .metric-sub {
+      font-size: 11px;
+      color: var(--accent-emerald);
+      margin-top: 2px;
+    }
+
+    /* Section Title */
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+
+    .badge-match {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .badge-exact {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-fuzzy {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--accent-amber);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 7px;
+      top: 10px;
+      bottom: 20px;
+      width: 2px;
+      background: linear-gradient(180deg, var(--accent) 0%, rgba(56, 189, 248, 0.2) 100%);
+    }
+
+    .timeline-item {
+      position: relative;
+      margin-bottom: 16px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .timeline-item:hover {
+      border-color: var(--accent);
+      transform: translateX(2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
+    .timeline-node {
+      position: absolute;
+      left: -20px;
+      top: 14px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .item-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 4px;
+    }
+
+    .item-cam {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .item-time {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .item-coords {
+      font-size: 11px;
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 2px;
+    }
+
+    .item-meta {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .item-meta strong {
+      color: var(--text-main);
+    }
+
+    /* Custom Leaflet Markers & Popups */
+    .camera-marker-pin {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #0284c7, #0f172a);
+      border: 2px solid #38bdf8;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .camera-marker-pin.start {
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.6);
+    }
+
+    .camera-marker-pin.end {
+      border-color: #f43f5e;
+      box-shadow: 0 0 16px rgba(244, 63, 94, 0.6);
+    }
+
+    .leaflet-popup-content-wrapper {
+      background: rgba(15, 23, 42, 0.95) !important;
+      backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(255, 255, 255, 0.15) !important;
+      border-radius: 12px !important;
+      color: #fff !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .leaflet-popup-tip {
+      background: rgba(15, 23, 42, 0.95) !important;
+    }
+
+    .popup-card {
+      font-family: 'Inter', sans-serif;
+      padding: 4px;
+      min-width: 220px;
+    }
+
+    .popup-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 6px;
+    }
+
+    .popup-row {
+      font-size: 12px;
+      margin: 4px 0;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .popup-row span:last-child {
+      color: #fff;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Empty/Loading states */
+    .status-box {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+    }
+
+    .status-icon {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Sidebar Panel -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand-badge">
+        <span></span> TraceX GIS Core
+      </div>
+      <h1>Trajectory Viewer</h1>
+      <p class="subtitle">Spatial-temporal vehicle reconstruction across surveillance nodes</p>
+    </div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+      <div class="search-bar">
+        <div class="input-wrapper">
+          <input type="text" id="plate-input" value="HR51BC3493" placeholder="ENTER PLATE NUMBER..." />
+        </div>
+        <button class="btn-track" id="btn-search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          Track
+        </button>
+      </div>
+
+      <div class="quick-tags">
+        <span class="tag-label">Quick:</span>
+        <span class="tag-chip" onclick="searchPlate('HR51BC3493')">HR51BC3493</span>
+        <span class="tag-chip" onclick="searchPlate('UP21X3666')">UP21X3666</span>
+        <span class="tag-chip" onclick="searchPlate('DL3CC8387')">DL3CC8387</span>
+        <span class="tag-chip fuzzy" onclick="searchPlate('HR51BC3498')">HR51BC3498 [Fuzzy]</span>
+      </div>
+    </div>
+
+    <!-- Content / Timeline -->
+    <div class="sidebar-content" id="content-panel">
+      <!-- Dynamic Content Loaded Here -->
+    </div>
+  </aside>
+
+  <!-- GIS Map Viewport -->
+  <main id="map-container">
+    <div id="map"></div>
+  </main>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  
+  <script>
+    // Initialize Map Centered on Delhi NCR
+    const map = L.map('map', {
+      zoomControl: false
+    }).setView([28.6139, 77.2090], 11);
+
+    L.control.zoom({ position: 'topright' }).addTo(map);
+
+    // Dark Map Tile Layer (CartoDB Dark Matter)
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // Feature Layers
+    let trajectoryPolyline = null;
+    let markerLayerGroup = L.layerGroup().addTo(map);
+    let markersList = [];
+
+    // Search trigger
+    document.getElementById('btn-search').addEventListener('click', () => {
+      const plate = document.getElementById('plate-input').value.trim();
+      if (plate) loadTrajectory(plate);
+    });
+
+    document.getElementById('plate-input').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        const plate = document.getElementById('plate-input').value.trim();
+        if (plate) loadTrajectory(plate);
+      }
+    });
+
+    function searchPlate(plate) {
+      document.getElementById('plate-input').value = plate;
+      loadTrajectory(plate);
+    }
+
+    async function loadTrajectory(plate) {
+      const contentPanel = document.getElementById('content-panel');
+      contentPanel.innerHTML = `
+        <div class="status-box">
+          <div class="status-icon">🛰️</div>
+          <p>Querying Trajectory Engine for <strong>${plate}</strong>...</p>
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`/api/trajectory?plate=${encodeURIComponent(plate)}&fuzzy=true`);
+        const data = await res.json();
+
+        if (!data.trajectories || data.trajectories.length === 0) {
+          contentPanel.innerHTML = `
+            <div class="status-box">
+              <div class="status-icon">⚠️</div>
+              <p>No trajectory sightings found for <strong>${plate}</strong>.</p>
+            </div>
+          `;
+          clearMap();
+          return;
+        }
+
+        const primaryTraj = data.trajectories[0];
+        renderTrajectory(primaryTraj, data.trajectories);
+      } catch (err) {
+        contentPanel.innerHTML = `
+          <div class="status-box">
+            <div class="status-icon">❌</div>
+            <p>Error loading trajectory: ${err.message}</p>
+          </div>
+        `;
+      }
+    }
+
+    function clearMap() {
+      if (trajectoryPolyline) {
+        map.removeLayer(trajectoryPolyline);
+        trajectoryPolyline = null;
+      }
+      markerLayerGroup.clearLayers();
+      markersList = [];
+    }
+
+    function renderTrajectory(traj, allMatches) {
+      clearMap();
+      const contentPanel = document.getElementById('content-panel');
+
+      const points = traj.points || [];
+      const latlngs = points.map(p => [p.latitude, p.longitude]);
+
+      // 1. Draw Polyline
+      if (latlngs.length > 1) {
+        trajectoryPolyline = L.polyline(latlngs, {
+          color: '#38bdf8',
+          weight: 4,
+          opacity: 0.9,
+          dashArray: '8, 8',
+          lineCap: 'round',
+          lineJoin: 'round'
+        }).addTo(map);
+
+        // Fit map bounds
+        map.fitBounds(trajectoryPolyline.getBounds(), { padding: [60, 60] });
+      } else if (latlngs.length === 1) {
+        map.setView(latlngs[0], 14);
+      }
+
+      // 2. Draw Numbered Markers for each camera waypoint
+      points.forEach((pt, index) => {
+        const isFirst = index === 0;
+        const isLast = index === points.length - 1;
+        let pinClass = "camera-marker-pin";
+        if (isFirst) pinClass += " start";
+        if (isLast && !isFirst) pinClass += " end";
+
+        const customIcon = L.divIcon({
+          className: 'custom-pin-wrapper',
+          html: `<div class="${pinClass}">${index + 1}</div>`,
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -18]
+        });
+
+        const marker = L.marker([pt.latitude, pt.longitude], { icon: customIcon });
+
+        const popupContent = `
+          <div class="popup-card">
+            <div class="popup-title">#${index + 1} ${pt.camera_id}</div>
+            <div class="popup-row"><span>Plate Observed</span><span>${pt.cleaned_plate}</span></div>
+            <div class="popup-row"><span>Timestamp</span><span>${formatTime(pt.timestamp)}</span></div>
+            <div class="popup-row"><span>Coordinates</span><span>${pt.latitude.toFixed(4)}, ${pt.longitude.toFixed(4)}</span></div>
+            <div class="popup-row"><span>Segment Distance</span><span>${pt.distance_from_prev_m.toFixed(1)} m</span></div>
+            <div class="popup-row"><span>Segment Speed</span><span>${pt.speed_kmh.toFixed(1)} km/h</span></div>
+            <div class="popup-row"><span>OCR Confidence</span><span>${(pt.ocr_confidence * 100).toFixed(1)}%</span></div>
+          </div>
+        `;
+        marker.bindPopup(popupContent);
+        markerLayerGroup.addLayer(marker);
+        markersList.push(marker);
+      });
+
+      // 3. Render Metrics & Timeline in Sidebar
+      const isExact = traj.match_type === 'EXACT';
+      const badgeClass = isExact ? 'badge-exact' : 'badge-fuzzy';
+
+      let html = `
+        <div class="section-header">
+          <span class="section-title">Track Summary</span>
+          <span class="badge-match ${badgeClass}">${traj.match_type} (Dist: ${traj.edit_distance})</span>
+        </div>
+
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Distance</div>
+            <div class="metric-value">${(traj.total_distance_meters / 1000).toFixed(2)} km</div>
+            <div class="metric-sub">${traj.total_distance_meters.toFixed(0)} meters</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Sightings</div>
+            <div class="metric-value">${traj.total_sightings}</div>
+            <div class="metric-sub">${traj.unique_cameras.length} cameras</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">First Seen</div>
+            <div class="metric-value" style="font-size:13px">${formatTime(traj.first_seen)}</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Last Seen</div>
+            <div class="metric-value" style="font-size:13px">${formatTime(traj.last_seen)}</div>
+          </div>
+        </div>
+
+        <div class="section-header">
+          <span class="section-title">Chronological Route (${points.length} Nodes)</span>
+        </div>
+
+        <div class="timeline">
+      `;
+
+      points.forEach((pt, index) => {
+        html += `
+          <div class="timeline-item" onclick="focusMarker(${index})">
+            <div class="timeline-node">${index + 1}</div>
+            <div class="item-header">
+              <div class="item-cam">${pt.camera_id}</div>
+              <div class="item-time">${formatTime(pt.timestamp)}</div>
+            </div>
+            <div class="item-coords">GPS: ${pt.latitude.toFixed(4)}, ${pt.longitude.toFixed(4)}</div>
+            <div class="item-meta">
+              <span>Leg: <strong>${(pt.distance_from_prev_m / 1000).toFixed(2)} km</strong></span>
+              <span>Speed: <strong>${pt.speed_kmh.toFixed(1)} km/h</strong></span>
+              <span>OCR: <strong>${(pt.ocr_confidence * 100).toFixed(0)}%</strong></span>
+            </div>
+          </div>
+        `;
+      });
+
+      html += `</div>`;
+      contentPanel.innerHTML = html;
+    }
+
+    function formatTime(isoStr) {
+      if (!isoStr) return "--";
+      try {
+        const d = new Date(isoStr);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch (e) {
+        return isoStr;
+      }
+    }
+
+    function focusMarker(index) {
+      if (markersList[index]) {
+        markersList[index].openPopup();
+        map.panTo(markersList[index].getLatLng());
+      }
+    }
+
+    // Initial Load
+    window.addEventListener('DOMContentLoaded', () => {
+      loadTrajectory('HR51BC3493');
+    });
+  </script>
+</body>
+</html>

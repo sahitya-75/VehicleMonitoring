@@ -1,0 +1,102 @@
+{
+  "generated_at": "2026-09-15T23:02:00.074422",
+  "summary": {
+    "total_detections": 52,
+    "unique_vehicles": 24,
+    "unique_plates": 24,
+    "valid_indian_plates": 12,
+    "valid_indian_percentage": 23.08,
+    "active_cameras": 5,
+    "earliest_detection": "2026-09-15 14:30:00+05:30",
+    "latest_detection": "2026-09-15 15:30:36+05:30"
+  },
+  "cameras": [
+    {
+      "camera_id": "CAM_01_JUNCTION_A",
+      "detection_count": 36,
+      "vehicle_count": 8,
+      "unique_plates_count": 20,
+      "avg_yolo_confidence": 0.493,
+      "avg_ocr_confidence": 0.653,
+      "first_seen": "2026-09-15 15:30:00+05:30",
+      "last_seen": "2026-09-15 15:30:04.500000+05:30"
+    },
+    {
+      "camera_id": "CAM_01_DELHI_NORTH",
+      "detection_count": 4,
+      "vehicle_count": 4,
+      "unique_plates_count": 4,
+      "avg_yolo_confidence": 0.554,
+      "avg_ocr_confidence": 0.93,
+      "first_seen": "2026-09-15 14:30:00+05:30",
+      "last_seen": "2026-09-15 14:30:00+05:30"
+    },
+    {
+      "camera_id": "CAM_02_DELHI_RING_ROAD",
+      "detection_count": 4,
+      "vehicle_count": 4,
+      "unique_plates_count": 4,
+      "avg_yolo_confidence": 0.554,
+      "avg_ocr_confidence": 0.93,
+      "first_seen": "2026-09-15 14:45:12+05:30",
+      "last_seen": "2026-09-15 14:45:12+05:30"
+    },
+    {
+      "camera_id": "CAM_03_DELHI_SOUTH",
+      "detection_count": 4,
+      "vehicle_count": 4,
+      "unique_plates_count": 4,
+      "avg_yolo_confidence": 0.554,
+      "avg_ocr_confidence": 0.93,
+      "first_seen": "2026-09-15 15:05:24+05:30",
+      "last_seen": "2026-09-15 15:05:24+05:30"
+    },
+    {
+      "camera_id": "CAM_04_NOIDA_EXPRESSWAY",
+      "detection_count": 4,
+      "vehicle_count": 4,
+      "unique_plates_count": 4,
+      "avg_yolo_confidence": 0.554,
+      "avg_ocr_confidence": 0.93,
+      "first_seen": "2026-09-15 15:30:36+05:30",
+      "last_seen": "2026-09-15 15:30:36+05:30"
+    }
+  ],
+  "hourly_traffic": [
+    {
+      "hour_of_day": 14,
+      "hour_label": "14:00 - 15:00",
+      "detection_count": 8,
+      "vehicle_count": 8,
+      "plate_count": 4
+    },
+    {
+      "hour_of_day": 15,
+      "hour_label": "15:00 - 16:00",
+      "detection_count": 44,
+      "vehicle_count": 16,
+      "plate_count": 24
+    }
+  ],
+  "speed_and_distance": {
+    "total_transit_segments": 12,
+    "average_speed_kmh": 41.08,
+    "max_speed_kmh": 56.04,
+    "min_speed_kmh": 33.18,
+    "vehicles_with_multi_point_path": 4,
+    "average_path_distance_km": 39.66,
+    "max_path_distance_km": 39.66
+  },
+  "common_routes": [
+    {
+      "route": "CAM_01_DELHI_NORTH -> CAM_02_DELHI_RING_ROAD -> CAM_03_DELHI_SOUTH -> CAM_04_NOIDA_EXPRESSWAY",
+      "frequency": 4,
+      "vehicles": [
+        "DL3CC8387",
+        "HR51BC3493",
+        "UP21X3666",
+        "ZCL3285"
+      ]
+    }
+  ]
+}

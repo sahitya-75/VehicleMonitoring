@@ -1,0 +1,23 @@
+# Environment variables
+.env
+.env.local
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+env/
+venv/
+
+# SQLite databases
+*.db
+*.sqlite3
+data/*.db
+
+# Generated video plate crops
+data/plates/video/
+data/plates/error_analysis/
+
+# Large input video exceeds GitHub's per-file limit
+data/videos/traffic.mp4
